@@ -1,0 +1,44 @@
+const mongoose = require('mongoose');
+const app = require('./app');
+const config = require('./config/config');
+const logger = require('./config/logger');
+global.__health = 'OK';
+let server;
+
+mongoose.connect(config.mongoose.url, config.mongoose.options).then(() => {
+  logger.info('Connected to MongoDB');
+  server = app.listen(config.port, () => {
+    logger.info(`Listening to port ${config.port}`);
+  });
+}).catch( err => {
+   logger.error(`Mongoose connect error: ${err}`);
+});
+
+const exitHandler = () => {
+  global.__health = 'bad';
+  if (server) {
+    server.close(() => {
+      logger.info('Server closed');
+      process.exit(1);
+    });
+  } else {
+    process.exit(1);
+  }
+};
+
+const unexpectedErrorHandler = (error) => {
+  console.error('unexpectedErrorHandler ', error);
+  logger.error(error);
+  exitHandler();
+};
+
+process.on('uncaughtException', unexpectedErrorHandler);
+process.on('unhandledRejection', unexpectedErrorHandler);
+
+process.on('SIGTERM', (error) => {
+  global.__health = 'bad';
+  logger.info('SIGTERM received');
+  if (server) {
+    server.close();
+  }
+});

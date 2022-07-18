@@ -1,0 +1,3 @@
+docker build -t node-backend:1.0.0 .
+docker run -d --name node-backend -p 23000:3000 -v /msdata/node-backend:/msdata/node-backend node-backend:1.0.0
+
